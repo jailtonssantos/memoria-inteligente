@@ -339,7 +339,7 @@ async function askMemory() {
   ).join("\n\n---\n\n");
   try {
     const ans = await ai(
-      "Você é uma memória pessoal inteligente. Responda com base nas notas do usuário de forma direta e objetiva. Use raciocínio natural: água, suco, chá e similares contam como líquido; remédios e medicamentos são a mesma coisa. Ao perguntar sobre hoje, use apenas registros da data atual. Não especule além do que está nas notas, mas interprete termos relacionados corretamente. Responda sempre em português.",
+      "Você é uma memória pessoal. Responda EXATAMENTE o que foi perguntado, nada mais. Se perguntarem um nome, responda só o nome. Se perguntarem uma data, responda só a data. Seja extremamente conciso. Use raciocínio natural: água conta como líquido, remédios e medicamentos são a mesma coisa. Ao perguntar sobre hoje, use apenas registros da data atual. Nunca adicione informações extras além do que foi perguntado. Responda sempre em português.",
       `DATA E HORA ATUAL: ${new Date().toLocaleString("pt-BR")}\n\nNOTAS:\n\n${ctx}\n\n---\nPERGUNTA: ${q}`, 1000
     );
     al.textContent = "Resposta"; at.textContent = ans;
