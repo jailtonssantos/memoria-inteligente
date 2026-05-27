@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memória Inteligente</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0f10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Memória">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f10;--bg2:#18181b;--bg3:#222226;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#e8e8e9;--text2:#888892;--text3:#55555f;
+  --accent:#7c6ef7;--tag-bg:rgba(124,110,247,0.12);--tag:#a59ff5;
+  --r:10px;--rl:14px;
+}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;padding:2rem 1rem}
+.app{width:100%;max-width:680px}
+h1{font-size:24px;font-weight:600;letter-spacing:-.03em}
+.hrow{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.count{font-size:13px;color:var(--text3)}
+.sub{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:2rem}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.75rem}
+.tab{padding:9px 20px;font-size:14px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .12s;margin-bottom:-1px}
+.tab.on{color:var(--text);border-bottom-color:var(--accent);font-weight:500}
+.tab:hover:not(.on){color:var(--text)}
+.panel{display:none}.panel.on{display:block}
+textarea,input[type=text],input[type=password]{width:100%;font-family:inherit;font-size:15px;color:var(--text);background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);outline:none;transition:border .15s}
+textarea{min-height:140px;padding:14px 16px;line-height:1.65;resize:vertical}
+input[type=text],input[type=password]{padding:11px 14px;border-radius:var(--r)}
+textarea:focus,input:focus{border-color:rgba(124,110,247,.5)}
+.row{display:flex;gap:8px;margin-top:10px;align-items:center;justify-content:space-between}
+.hint{font-size:12px;color:var(--text3)}
+button{padding:9px 20px;font-size:14px;font-weight:500;border:none;border-radius:var(--r);cursor:pointer;font-family:inherit;transition:opacity .12s,transform .1s;white-space:nowrap}
+button:active{transform:scale(.97)}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:disabled{opacity:.35;cursor:default;transform:none}
+.btn-ghost{background:var(--bg2);color:var(--text2);border:1px solid var(--border2)}
+.status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-top:12px}
+.spin{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.slabel{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin:1.75rem 0 .75rem}
+.card{padding:13px 15px;margin-bottom:7px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);transition:border .12s}
+.card:hover{border-color:var(--border2)}
+.chead{display:flex;gap:10px}
+.ctext{font-size:14px;color:var(--text);line-height:1.6;flex:1;word-break:break-word}
+.cside{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.cdate{font-size:11px;color:var(--text3);white-space:nowrap}
+.del{font-size:17px;color:var(--text3);background:none;border:none;cursor:pointer;line-height:1;padding:0 1px;opacity:0;transition:opacity .1s}
+.card:hover .del{opacity:.6}
+.del:hover{opacity:1!important;color:#f07}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tag{font-size:11px;padding:2px 9px;background:var(--tag-bg);color:var(--tag);border-radius:999px}
+.cat{font-size:11px;padding:2px 8px;background:var(--bg3);color:var(--text3);border-radius:999px}
+.abox{margin-top:1.25rem;padding:18px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl)}
+.alabel{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.atext{font-size:15px;line-height:1.75;color:var(--text);white-space:pre-wrap}
+.fbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem}
+.chip{font-size:12px;padding:4px 12px;border:1px solid var(--border);border-radius:999px;cursor:pointer;background:transparent;color:var(--text2);font-family:inherit;transition:all .1s}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.catgroup{margin-bottom:1.75rem}
+.cathead{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.catname{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.catn{font-size:10px;color:var(--text3);opacity:.6}
+.qrow{display:flex;gap:8px}
+.qrow input{flex:1}
+.empty{font-size:14px;color:var(--text2);padding:1rem 0}
+/* API key config */
+.cfg-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:1.5rem}
+.cfg-box{padding:18px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:1.75rem}
+.cfg-box p{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.cfg-box a{color:var(--accent);text-decoration:none}
+.cfg-box a:hover{text-decoration:underline}
+.cfg-row{display:flex;gap:8px;margin-top:8px}
+.cfg-row input{flex:1}
+.key-dot{width:7px;height:7px;border-radius:50%;background:#3c3;flex-shrink:0}
+.key-label{font-size:12px;color:var(--text3)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- API key config bar -->
+  <div id="cfg-bar" class="cfg-bar" style="display:none">
+    <span class="key-dot" id="key-dot" style="background:#555"></span>
+    <span class="key-label" id="key-label">sem API key</span>
+    <button class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="exportData()">⬇ Exportar</button>
+    <label class="btn-ghost" style="padding:5px 12px;font-size:12px;cursor:pointer">⬆ Importar<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+    <button class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="toggleCfg()">Configurar</button>
+  </div>
+
+  <div id="cfg-box" class="cfg-box">
+    <p>Para usar a IA (auto-classificação e consultas), você precisa de uma <strong>API key do Groq</strong> — gratuita e sem restrição regional.<br>
+    Crie a sua em <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> → <em>Create API Key</em>. A key fica salva apenas no seu navegador.</p>
+    <div class="cfg-row">
+      <input type="password" id="key-input" placeholder="gsk_...">
+      <button class="btn-p" onclick="saveKey()">Salvar key</button>
+    </div>
+    <p id="key-err" style="font-size:12px;color:#f07;margin-top:8px;display:none"></p>
+    <p style="font-size:12px;color:#888;margin-top:12px">Se o botão não funcionar: <button onclick="askKeyPrompt()" style="background:none;border:none;color:#7c6ef7;cursor:pointer;font-size:12px;padding:0;text-decoration:underline">clique aqui para uma janela de texto</button></p>
+  </div>
+
+  <!-- App -->
+  <div id="main-app" style="display:none">
+    <div class="hrow"><span style="font-size:26px;line-height:1">🧠</span><h1>Memória</h1><span class="count" id="badge">0 registros</span></div>
+    <p class="sub">Registre qualquer coisa. Pergunte quando precisar.</p>
+
+    <div class="tabs">
+      <button class="tab on" data-t="reg">Registrar</button>
+      <button class="tab" data-t="ask">Perguntar</button>
+      <button class="tab" data-t="all">Tudo</button>
+    </div>
+
+    <!-- Registrar -->
+    <div class="panel on" id="p-reg">
+      <textarea id="note" placeholder="Registre qualquer coisa — ideia, tarefa, informação, lembrete, decisão, observação..."></textarea>
+      <div id="s-status" class="status" style="display:none"><span class="spin"></span>Organizando e salvando...</div>
+      <div class="row" id="s-toolbar">
+        <span class="hint">Ctrl/⌘ + Enter para salvar</span>
+        <button class="btn-p" id="btn-add" disabled onclick="addNote()">Registrar</button>
+      </div>
+      <p class="slabel" id="rl" style="display:none">Recentes</p>
+      <div id="rlist"></div>
+    </div>
+
+    <!-- Perguntar -->
+    <div class="panel" id="p-ask">
+      <p class="empty" id="ask-empty" style="display:none">Nenhum registro ainda. Vá para Registrar primeiro.</p>
+      <div id="ask-form" style="display:none">
+        <div class="qrow">
+          <input type="text" id="q-input" placeholder="O que você quer saber? Ex: quais são minhas tarefas pendentes?">
+          <button class="btn-p" id="btn-ask" onclick="askMemory()">Perguntar</button>
+        </div>
+        <div id="abox" class="abox" style="display:none">
+          <div class="alabel" id="alabel">Resposta</div>
+          <div class="atext" id="atext"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tudo -->
+    <div class="panel" id="p-all">
+      <p class="empty" id="all-empty" style="display:none">Nenhum registro ainda.</p>
+      <div id="all-content" style="display:none">
+        <div class="fbar" id="fbar"></div>
+        <div id="all-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE = "memoria_v1";
+const KEY_STORE = "mem_apikey";
+let entries = [];
+let filter = null;
+let apiKey = "";
+
+function exportData() {
+  if (entries.length === 0) { alert("Nenhum registro para exportar."); return; }
+  const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "memoria_" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) { alert("Arquivo inválido."); return; }
+      const existing = new Set(entries.map(x => x.id));
+      const novos = imported.filter(x => !existing.has(x.id));
+      entries = [...entries, ...novos].sort((a,b) => b.id - a.id).slice(0,500);
+      saveEntries();
+      render();
+      alert(novos.length + " registro(s) importado(s) com sucesso.");
+    } catch(err) {
+      alert("Erro ao ler o arquivo: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = "";
+}
+
+function loadKey() {
+  apiKey = localStorage.getItem(KEY_STORE) || "";
+  document.getElementById("cfg-bar").style.display = "flex";
+  if (apiKey && apiKey.length >= 20) {
+    showApp();
+  } else {
+    localStorage.removeItem(KEY_STORE);
+  }
+}
+
+function saveKey() {
+  const input = document.getElementById("key-input");
+  const v = input ? input.value.trim() : "";
+  const err = document.getElementById("key-err");
+  if (!v || v.length < 20) {
+    if (err) { err.textContent = "Key muito curta (" + v.length + " chars). Cole a key completa do Groq."; err.style.display = "block"; }
+    return;
+  }
+  if (err) err.style.display = "none";
+  apiKey = v;
+  localStorage.setItem(KEY_STORE, v);
+  showApp();
+}
+
+function askKeyPrompt() {
+  const v = window.prompt("Cole sua API key do Groq (gsk_...):");
+  if (!v || v.trim().length < 20) { alert("Key inválida."); return; }
+  apiKey = v.trim();
+  localStorage.setItem(KEY_STORE, apiKey);
+  showApp();
+}
+
+function showApp() {
+  document.getElementById("cfg-box").style.display = "none";
+  document.getElementById("main-app").style.display = "block";
+  document.getElementById("key-dot").style.background = "#3c3";
+  document.getElementById("key-label").textContent = "API key configurada";
+  loadEntries();
+}
+
+function toggleCfg() {
+  const box = document.getElementById("cfg-box");
+  box.style.display = box.style.display === "none" ? "block" : "none";
+}
+
+async function ai(sys, usr, tok) {
+  const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: tok || 600,
+      messages: [{ role: "system", content: sys }, { role: "user", content: usr }]
+    })
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.choices?.[0]?.message?.content || "";
+}
+
+function loadEntries() {
+  try { const r = localStorage.getItem(STORE); if (r) entries = JSON.parse(r); } catch(e) {}
+  render();
+}
+
+function saveEntries() {
+  try { localStorage.setItem(STORE, JSON.stringify(entries)); } catch(e) {}
+}
+
+function fmt(iso) { const d = new Date(iso); return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+
+function cardHTML(e, trunc) {
+  const txt = trunc && e.text.length > 140 ? e.text.slice(0, 140) + "…" : e.text;
+  const safe = txt.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  const tagsH = (e.tags||[]).map(t => `<span class="tag">${t}</span>`).join("");
+  const catH = e.categoria ? `<span class="cat">${e.categoria.replace(/_/g," ")}</span>` : "";
+  const footer = (tagsH || catH) ? `<div class="tags">${tagsH}${catH}</div>` : "";
+  return `<div class="card"><div class="chead"><p class="ctext">${safe}</p><div class="cside"><span class="cdate">${fmt(e.date)}</span><button class="del" onclick="del(${e.id})" title="Remover">&times;</button></div></div>${footer}</div>`;
+}
+
+function render() {
+  const n = entries.length;
+  document.getElementById("badge").textContent = `${n} ${n===1?"registro":"registros"}`;
+  const rl = document.getElementById("rl"), rv = document.getElementById("rlist");
+  if (n === 0) { rl.style.display = "none"; rv.innerHTML = ""; }
+  else { rl.style.display = "block"; rv.innerHTML = entries.slice(0,5).map(e => cardHTML(e,true)).join(""); }
+  document.getElementById("ask-empty").style.display = n===0?"block":"none";
+  document.getElementById("ask-form").style.display = n===0?"none":"block";
+  document.getElementById("all-empty").style.display = n===0?"block":"none";
+  const ac = document.getElementById("all-content");
+  ac.style.display = n===0?"none":"block";
+  if (n > 0) {
+    const cats = [...new Set(entries.map(e => e.categoria||"geral"))].sort();
+    document.getElementById("fbar").innerHTML =
+      `<button class="chip ${!filter?"on":""}" onclick="setFilter(null)">Tudo</button>` +
+      cats.map(c => `<button class="chip ${filter===c?"on":""}" onclick="setFilter('${c}')">${c.replace(/_/g," ")}</button>`).join("");
+    const filtered = filter ? entries.filter(e => (e.categoria||"geral")===filter) : entries;
+    const bycat = {};
+    filtered.forEach(e => { const c = e.categoria||"geral"; if(!bycat[c]) bycat[c]=[]; bycat[c].push(e); });
+    document.getElementById("all-list").innerHTML = Object.entries(bycat).map(([c,items]) =>
+      `<div class="catgroup"><div class="cathead"><span class="catname">${c.replace(/_/g," ")}</span><span class="catn">(${items.length})</span></div>${items.map(e=>cardHTML(e,false)).join("")}</div>`
+    ).join("");
+  }
+}
+
+async function addNote() {
+  const el = document.getElementById("note"), text = el.value.trim();
+  if (!text) return;
+  document.getElementById("btn-add").disabled = true;
+  document.getElementById("s-status").style.display = "flex";
+  document.getElementById("s-toolbar").style.display = "none";
+  let tags = [], categoria = "geral";
+  try {
+    const raw = await ai(
+      "Analise a nota. Retorne SOMENTE JSON válido sem markdown: {\"tags\":[\"tag1\",\"tag2\"],\"categoria\":\"palavra\"}. Máximo 3 tags curtas em português minúsculas sem acentos. Categoria: uma palavra (tarefas, ideias, trabalho, financas, saude, aprendizado, projetos, pessoal, etc).",
+      text, 120
+    );
+    const p = JSON.parse(raw.replace(/```json|```/g,"").trim());
+    tags = (p.tags||[]).slice(0,3);
+    categoria = (p.categoria||"geral").toLowerCase().replace(/\s+/g,"_").slice(0,30);
+  } catch(e) {}
+  entries = [{ id: Date.now(), text, tags, categoria, date: new Date().toISOString() }, ...entries].slice(0,500);
+  saveEntries();
+  el.value = "";
+  document.getElementById("s-status").style.display = "none";
+  document.getElementById("s-toolbar").style.display = "flex";
+  document.getElementById("btn-add").disabled = true;
+  render();
+}
+
+async function askMemory() {
+  const q = document.getElementById("q-input").value.trim();
+  if (!q || entries.length===0) return;
+  const btn = document.getElementById("btn-ask");
+  btn.disabled = true; btn.textContent = "...";
+  const box = document.getElementById("abox"), al = document.getElementById("alabel"), at = document.getElementById("atext");
+  box.style.display = "block";
+  al.innerHTML = '<span class="spin"></span>Consultando sua memória...';
+  at.textContent = "";
+  const ctx = entries.slice(0,200).map(e =>
+    `[${fmt(e.date)} | ${e.categoria||"geral"}${e.tags?.length?" | "+e.tags.join(", "):""}]\n${e.text}`
+  ).join("\n\n---\n\n");
+  try {
+    const ans = await ai(
+      "Você é uma memória pessoal inteligente. Responda com base nas notas do usuário de forma direta e objetiva. Use raciocínio natural: água, suco, chá e similares contam como líquido; remédios e medicamentos são a mesma coisa. Ao perguntar sobre hoje, use apenas registros da data atual. Não especule além do que está nas notas, mas interprete termos relacionados corretamente. Responda sempre em português.",
+      `DATA E HORA ATUAL: ${new Date().toLocaleString("pt-BR")}\n\nNOTAS:\n\n${ctx}\n\n---\nPERGUNTA: ${q}`, 1000
+    );
+    al.textContent = "Resposta"; at.textContent = ans;
+  } catch(e) {
+    al.textContent = "Erro"; at.textContent = "Detalhe: " + e.message;
+  }
+  btn.disabled = false; btn.textContent = "Perguntar";
+}
+
+function del(id) { entries = entries.filter(e => e.id!==id); saveEntries(); render(); }
+function setFilter(f) { filter = f; render(); }
+
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("on"));
+    document.querySelectorAll(".panel").forEach(x => x.classList.remove("on"));
+    t.classList.add("on");
+    document.getElementById("p-"+t.dataset.t).classList.add("on");
+  });
+});
+
+const noteEl = document.getElementById("note");
+noteEl.addEventListener("input", () => { document.getElementById("btn-add").disabled = !noteEl.value.trim(); });
+noteEl.addEventListener("keydown", e => { if ((e.ctrlKey||e.metaKey) && e.key==="Enter") { e.preventDefault(); if(noteEl.value.trim()) addNote(); } });
+document.getElementById("q-input").addEventListener("keydown", e => { if(e.key==="Enter") askMemory(); });
+
+loadKey();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function(e){ console.log('SW error:', e); });
+}
+</script>
+</body>
+</html>
