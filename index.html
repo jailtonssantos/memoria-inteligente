@@ -365,10 +365,14 @@ function obSetLang(lang) {
   document.getElementById("ob-next").style.display = "inline-block";
   document.getElementById("ob-skip").style.display = "inline-block";
   obStep = 1;
-  document.getElementById("ob0").classList.remove("on");
-  document.getElementById("od0").classList.remove("on");
-  document.getElementById("ob1").classList.add("on");
-  document.getElementById("od1").classList.add("on");
+  var ob0 = document.getElementById("ob0");
+  var od0 = document.getElementById("od0");
+  var ob1 = document.getElementById("ob1");
+  var od1 = document.getElementById("od1");
+  if(ob0) ob0.classList.remove("on");
+  if(od0) od0.classList.remove("on");
+  if(ob1) ob1.classList.add("on");
+  if(od1) od1.classList.add("on");
 }
 function obNext() {
   if (obStep === 0) {
