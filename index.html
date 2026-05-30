@@ -169,28 +169,37 @@ onAuthStateChanged(auth, async (user) => {
 <div id="onboard" class="onboard" style="display:none">
   <div class="onboard-box">
 
-    <div class="onboard-step on" id="ob1">
+    <div class="onboard-step on" id="ob0">
+      <div style="font-size:40px;margin-bottom:1.5rem">🧠</div>
+      <p class="onboard-title" style="font-size:20px;margin-bottom:1.5rem">Choose your language / Escolha seu idioma</p>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <button onclick="obSetLang('pt')" style="padding:16px 28px;font-size:18px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-family:inherit;color:var(--text);transition:border .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">🇧🇷 Português</button>
+        <button onclick="obSetLang('en')" style="padding:16px 28px;font-size:18px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-family:inherit;color:var(--text);transition:border .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">🇺🇸 English</button>
+      </div>
+    </div>
+
+    <div class="onboard-step" id="ob1">
       <div style="font-size:40px;margin-bottom:1rem">🧠</div>
-      <p class="onboard-title">Bem-vindo à Memória</p>
-      <p class="onboard-sub">Registre qualquer coisa em segundos. Pergunte quando precisar. A IA organiza tudo por você.</p>
-      <div class="onboard-card">📝 <strong>Registre</strong> medicações, tarefas, ideias, consultas, gastos — qualquer coisa.</div>
-      <div class="onboard-card">🔍 <strong>Pergunte</strong> em linguagem natural: "o que tomei hoje?", "qual minha próxima consulta?"</div>
-      <div class="onboard-card">📂 <strong>Tudo organizado</strong> automaticamente por categoria e data.</div>
+      <p class="onboard-title" id="ob1-title">Bem-vindo à Memória</p>
+      <p class="onboard-sub" id="ob1-sub">Registre qualquer coisa em segundos. Pergunte quando precisar. A IA organiza tudo por você.</p>
+      <div class="onboard-card" id="ob1-c1">📝 <strong>Registre</strong> medicações, tarefas, ideias, consultas, gastos — qualquer coisa.</div>
+      <div class="onboard-card" id="ob1-c2">🔍 <strong>Pergunte</strong> em linguagem natural: "o que tomei hoje?", "qual minha próxima consulta?"</div>
+      <div class="onboard-card" id="ob1-c3">📂 <strong>Tudo organizado</strong> automaticamente por categoria e data.</div>
     </div>
 
     <div class="onboard-step" id="ob2">
       <div style="font-size:40px;margin-bottom:1rem">⚡</div>
-      <p class="onboard-title">Como funciona</p>
-      <p class="onboard-sub">O app usa inteligência artificial gratuita para entender suas perguntas e organizar seus registros.</p>
-      <div class="onboard-card">🔑 Você vai precisar de uma <strong>API key gratuita do Groq</strong> — é rápido e sem cartão de crédito.</div>
-      <div class="onboard-card">📏 <strong>Registros curtos funcionam melhor.</strong> Prefira frases diretas como <code>tomei medicação 07h</code> em vez de textos longos.</div>
-      <div class="onboard-card">⏱ Há um <strong>limite de uso por minuto</strong> — generoso para o dia a dia, mas evite muitas consultas seguidas.</div>
+      <p class="onboard-title" id="ob2-title">Como funciona</p>
+      <p class="onboard-sub" id="ob2-sub">O app usa inteligência artificial gratuita para entender suas perguntas e organizar seus registros.</p>
+      <div class="onboard-card" id="ob2-c1">🔑 Você vai precisar de uma <strong>API key gratuita do Groq</strong> — é rápido e sem cartão de crédito.</div>
+      <div class="onboard-card" id="ob2-c2">📏 <strong>Registros curtos funcionam melhor.</strong> Prefira frases diretas como <code>tomei medicação 07h</code> em vez de textos longos.</div>
+      <div class="onboard-card" id="ob2-c3">⏱ Há um <strong>limite de uso por minuto</strong> — generoso para o dia a dia, mas evite muitas consultas seguidas.</div>
     </div>
 
     <div class="onboard-step" id="ob3">
       <div style="font-size:40px;margin-bottom:1rem">🔑</div>
-      <p class="onboard-title">Crie sua API key gratuita</p>
-      <p class="onboard-sub">Você precisa fazer isso uma única vez. Leva menos de 2 minutos.</p>
+      <p class="onboard-title" id="ob3-title">Crie sua API key gratuita</p>
+      <p class="onboard-sub" id="ob3-sub">Você precisa fazer isso uma única vez. Leva menos de 2 minutos.</p>
       <div class="onboard-card">1. Acesse <strong><a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a></strong></div>
       <div class="onboard-card">2. Crie uma conta gratuita (pode usar Google)</div>
       <div class="onboard-card">3. Clique em <strong>Create API Key</strong> e copie a key</div>
@@ -199,13 +208,14 @@ onAuthStateChanged(auth, async (user) => {
 
     <div class="onboard-nav">
       <div class="onboard-dots">
-        <div class="onboard-dot on" id="od1"></div>
+        <div class="onboard-dot on" id="od0"></div>
+        <div class="onboard-dot" id="od1"></div>
         <div class="onboard-dot" id="od2"></div>
         <div class="onboard-dot" id="od3"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="onboard-skip" onclick="finishOnboard()">Pular</button>
-        <button class="btn-p" id="ob-next" onclick="obNext()">Próximo →</button>
+        <button class="onboard-skip" id="ob-skip" onclick="finishOnboard()">Pular</button>
+        <button class="btn-p" id="ob-next" onclick="obNext()" style="display:none">Próximo →</button>
       </div>
     </div>
   </div>
@@ -329,15 +339,49 @@ function importData(event) {
   event.target.value = "";
 }
 
-var obStep = 1;
+var obStep = 0;
+function obSetLang(lang) {
+  LANG = lang;
+  localStorage.setItem("mem_lang", lang);
+  applyLang();
+  // Update onboarding content language
+  if (lang === "en") {
+    document.getElementById("ob1-title").textContent = "Welcome to Memory";
+    document.getElementById("ob1-sub").textContent = "Log anything in seconds. Ask when you need it. AI organizes everything for you.";
+    document.getElementById("ob1-c1").innerHTML = "📝 <strong>Log</strong> medications, tasks, ideas, appointments, expenses — anything.";
+    document.getElementById("ob1-c2").innerHTML = "🔍 <strong>Ask</strong> in natural language: "what did I take today?", "what's my next appointment?"";
+    document.getElementById("ob1-c3").innerHTML = "📂 <strong>Everything organized</strong> automatically by category and date.";
+    document.getElementById("ob2-title").textContent = "How it works";
+    document.getElementById("ob2-sub").textContent = "The app uses free AI to understand your questions and organize your entries.";
+    document.getElementById("ob2-c1").innerHTML = "🔑 You'll need a <strong>free Groq API key</strong> — quick and no credit card needed.";
+    document.getElementById("ob2-c2").innerHTML = "📏 <strong>Short entries work best.</strong> Prefer direct phrases like <code>took medication 7am</code> instead of long texts.";
+    document.getElementById("ob2-c3").innerHTML = "⏱ There's a <strong>per-minute usage limit</strong> — generous for daily use, just avoid many queries in a row.";
+    document.getElementById("ob3-title").textContent = "Create your free API key";
+    document.getElementById("ob3-sub").textContent = "You only need to do this once. Takes less than 2 minutes.";
+    document.getElementById("ob-next").textContent = "Next →";
+  } else {
+    document.getElementById("ob-next").textContent = "Próximo →";
+  }
+  document.getElementById("ob-next").style.display = "inline-block";
+  document.getElementById("ob-skip").style.display = "inline-block";
+  obStep = 1;
+  document.getElementById("ob0").classList.remove("on");
+  document.getElementById("od0").classList.remove("on");
+  document.getElementById("ob1").classList.add("on");
+  document.getElementById("od1").classList.add("on");
+}
 function obNext() {
+  if (obStep === 0) {
+    // Should use obSetLang, skip direct next
+    return;
+  }
   if (obStep < 3) {
     document.getElementById("ob"+obStep).classList.remove("on");
     document.getElementById("od"+obStep).classList.remove("on");
     obStep++;
     document.getElementById("ob"+obStep).classList.add("on");
     document.getElementById("od"+obStep).classList.add("on");
-    if (obStep === 3) document.getElementById("ob-next").textContent = "Começar →";
+    if (obStep === 3) document.getElementById("ob-next").textContent = LANG==="en" ? "Start →" : "Começar →";
   } else {
     finishOnboard();
   }
