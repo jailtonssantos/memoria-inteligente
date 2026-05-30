@@ -5,12 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Memória Inteligente</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f0f10">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Memória">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -71,7 +65,26 @@ button:active{transform:scale(.97)}
 .qrow{display:flex;gap:8px}
 .qrow input{flex:1}
 .empty{font-size:14px;color:var(--text2);padding:1rem 0}
+/* Onboarding */
+.onboard{position:fixed;top:0;left:0;width:100%;height:100%;background:#0f0f10;z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.onboard-box{max-width:480px;width:100%}
+.onboard-step{display:none}.onboard-step.on{display:block}
+.onboard-title{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
+.onboard-sub{font-size:15px;color:var(--text2);line-height:1.65;margin-bottom:1.5rem}
+.onboard-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:10px;font-size:14px;color:var(--text2);line-height:1.6}
+.onboard-card strong{color:var(--text)}
+.onboard-card code{background:var(--bg3);padding:2px 7px;border-radius:4px;font-size:12px;color:var(--tag)}
+.onboard-nav{display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem}
+.onboard-dots{display:flex;gap:6px}
+.onboard-dot{width:6px;height:6px;border-radius:50%;background:var(--border2)}
+.onboard-dot.on{background:var(--accent)}
+.onboard-skip{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:inherit}
+.onboard-skip:hover{color:var(--text2)}
 /* API key config */
+.auth-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
+.auth-bar img{width:24px;height:24px;border-radius:50%;object-fit:cover}
+.auth-name{font-size:13px;color:var(--text2);flex:1}
+.btn-auth{padding:5px 12px;font-size:12px}
 .cfg-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:1.5rem}
 .cfg-box{padding:18px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:1.75rem}
 .cfg-box p{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px}
@@ -82,28 +95,149 @@ button:active{transform:scale(.97)}
 .key-dot{width:7px;height:7px;border-radius:50%;background:#3c3;flex-shrink:0}
 .key-label{font-size:12px;color:var(--text3)}
 </style>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBEBATr4LW6EdpvIyNWJrnnygEv8zXaZU0",
+  authDomain: "memoria-inteligente-fd5b0.firebaseapp.com",
+  projectId: "memoria-inteligente-fd5b0",
+  storageBucket: "memoria-inteligente-fd5b0.firebasestorage.app",
+  messagingSenderId: "1021842175263",
+  appId: "1:1021842175263:web:afe0fbad56938e8d822c2a"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+let currentUser = null;
+
+window.fbSignIn = async function() {
+  const provider = new GoogleAuthProvider();
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) { console.log(e); }
+};
+
+window.fbSignOut = async function() {
+  await signOut(auth);
+};
+
+window.fbSaveEntry = async function(entry) {
+  if (!currentUser) return;
+  await setDoc(doc(db, "users", currentUser.uid, "entries", String(entry.id)), entry);
+};
+
+window.fbDeleteEntry = async function(id) {
+  if (!currentUser) return;
+  await deleteDoc(doc(db, "users", currentUser.uid, "entries", String(id)));
+};
+
+window.fbLoadEntries = async function() {
+  if (!currentUser) return null;
+  const q = query(collection(db, "users", currentUser.uid, "entries"), orderBy("id", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data());
+};
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  if (user) {
+    document.getElementById("fb-user").textContent = user.displayName || user.email;
+    document.getElementById("fb-avatar").src = user.photoURL || "";
+    document.getElementById("fb-avatar").style.display = "block";
+    document.getElementById("fb-signin").style.display = "none";
+    document.getElementById("fb-signout").style.display = "inline-block";
+    document.getElementById("fb-user").style.display = "inline";
+    // Load from cloud
+    const cloudEntries = await window.fbLoadEntries();
+    if (cloudEntries && cloudEntries.length > 0) {
+      window._mergeCloudEntries(cloudEntries);
+    }
+  } else {
+    document.getElementById("fb-avatar").style.display = "none";
+    document.getElementById("fb-signin").style.display = "inline-block";
+    document.getElementById("fb-signout").style.display = "none";
+    document.getElementById("fb-user").style.display = "none";
+  }
+});
+</script>
 </head>
 <body>
+<div id="onboard" class="onboard" style="display:none">
+  <div class="onboard-box">
+
+    <div class="onboard-step on" id="ob1">
+      <div style="font-size:40px;margin-bottom:1rem">🧠</div>
+      <p class="onboard-title">Bem-vindo à Memória</p>
+      <p class="onboard-sub">Registre qualquer coisa em segundos. Pergunte quando precisar. A IA organiza tudo por você.</p>
+      <div class="onboard-card">📝 <strong>Registre</strong> medicações, tarefas, ideias, consultas, gastos — qualquer coisa.</div>
+      <div class="onboard-card">🔍 <strong>Pergunte</strong> em linguagem natural: "o que tomei hoje?", "qual minha próxima consulta?"</div>
+      <div class="onboard-card">📂 <strong>Tudo organizado</strong> automaticamente por categoria e data.</div>
+    </div>
+
+    <div class="onboard-step" id="ob2">
+      <div style="font-size:40px;margin-bottom:1rem">⚡</div>
+      <p class="onboard-title">Como funciona</p>
+      <p class="onboard-sub">O app usa inteligência artificial gratuita para entender suas perguntas e organizar seus registros.</p>
+      <div class="onboard-card">🔑 Você vai precisar de uma <strong>API key gratuita do Groq</strong> — é rápido e sem cartão de crédito.</div>
+      <div class="onboard-card">📏 <strong>Registros curtos funcionam melhor.</strong> Prefira frases diretas como <code>tomei medicação 07h</code> em vez de textos longos.</div>
+      <div class="onboard-card">⏱ Há um <strong>limite de uso por minuto</strong> — generoso para o dia a dia, mas evite muitas consultas seguidas.</div>
+    </div>
+
+    <div class="onboard-step" id="ob3">
+      <div style="font-size:40px;margin-bottom:1rem">🔑</div>
+      <p class="onboard-title">Crie sua API key gratuita</p>
+      <p class="onboard-sub">Você precisa fazer isso uma única vez. Leva menos de 2 minutos.</p>
+      <div class="onboard-card">1. Acesse <strong><a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a></strong></div>
+      <div class="onboard-card">2. Crie uma conta gratuita (pode usar Google)</div>
+      <div class="onboard-card">3. Clique em <strong>Create API Key</strong> e copie a key</div>
+      <div class="onboard-card">4. Cole a key na próxima tela e pronto ✅</div>
+    </div>
+
+    <div class="onboard-nav">
+      <div class="onboard-dots">
+        <div class="onboard-dot on" id="od1"></div>
+        <div class="onboard-dot" id="od2"></div>
+        <div class="onboard-dot" id="od3"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="onboard-skip" onclick="finishOnboard()">Pular</button>
+        <button class="btn-p" id="ob-next" onclick="obNext()">Próximo →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- API key config bar -->
+  <div class="auth-bar">
+    <img id="fb-avatar" src="" style="display:none">
+    <span class="auth-name" id="fb-user" style="display:none"></span>
+    <span class="auth-name" id="fb-no-user" style="font-size:12px;color:var(--text3)">Salve na nuvem — faça login</span>
+    <button class="btn-ghost btn-auth" id="fb-signin" onclick="fbSignIn()">Login Google</button>
+    <button class="btn-ghost btn-auth" id="fb-signout" style="display:none" onclick="fbSignOut()">Sair</button>
+  </div>
   <div id="cfg-bar" class="cfg-bar" style="display:none">
     <span class="key-dot" id="key-dot" style="background:#555"></span>
     <span class="key-label" id="key-label">sem API key</span>
-    <button class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="exportData()">⬇ Exportar</button>
-    <label class="btn-ghost" style="padding:5px 12px;font-size:12px;cursor:pointer">⬆ Importar<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
-    <button class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="toggleCfg()">Configurar</button>
+    <button id="lang-btn" class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="toggleLang()">🇧🇷 PT</button>
+    <button class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="exportData()"><span id="btn-export-lbl">⬇ Exportar</span></button>
+    <label class="btn-ghost" style="padding:5px 12px;font-size:12px;cursor:pointer"><span id="btn-import-lbl">⬆ Importar</span><input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+    <button class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="toggleCfg()"><span id="btn-config-lbl">Configurar</span></button>
   </div>
 
   <div id="cfg-box" class="cfg-box">
-    <p>Para usar a IA (auto-classificação e consultas), você precisa de uma <strong>API key do Groq</strong> — gratuita e sem restrição regional.<br>
+    <p>Para usar a IA (auto-classificação e consultas), você precisa de uma <strong>API key do Groq</strong> — gratuita.<br>
     Crie a sua em <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> → <em>Create API Key</em>. A key fica salva apenas no seu navegador.</p>
     <div class="cfg-row">
       <input type="password" id="key-input" placeholder="gsk_...">
       <button class="btn-p" onclick="saveKey()">Salvar key</button>
     </div>
     <p id="key-err" style="font-size:12px;color:#f07;margin-top:8px;display:none"></p>
-    <p style="font-size:12px;color:#888;margin-top:12px">Se o botão não funcionar: <button onclick="askKeyPrompt()" style="background:none;border:none;color:#7c6ef7;cursor:pointer;font-size:12px;padding:0;text-decoration:underline">clique aqui para uma janela de texto</button></p>
   </div>
 
   <!-- App -->
@@ -195,13 +329,35 @@ function importData(event) {
   event.target.value = "";
 }
 
+var obStep = 1;
+function obNext() {
+  if (obStep < 3) {
+    document.getElementById("ob"+obStep).classList.remove("on");
+    document.getElementById("od"+obStep).classList.remove("on");
+    obStep++;
+    document.getElementById("ob"+obStep).classList.add("on");
+    document.getElementById("od"+obStep).classList.add("on");
+    if (obStep === 3) document.getElementById("ob-next").textContent = "Começar →";
+  } else {
+    finishOnboard();
+  }
+}
+function finishOnboard() {
+  document.getElementById("onboard").style.display = "none";
+  localStorage.setItem("mem_onboard", "1");
+}
+function checkOnboard() {
+  if (!localStorage.getItem("mem_onboard")) {
+    document.getElementById("onboard").style.display = "flex";
+  }
+}
+
 function loadKey() {
+  checkOnboard();
   apiKey = localStorage.getItem(KEY_STORE) || "";
   document.getElementById("cfg-bar").style.display = "flex";
   if (apiKey && apiKey.length >= 20) {
     showApp();
-  } else {
-    localStorage.removeItem(KEY_STORE);
   }
 }
 
@@ -210,20 +366,12 @@ function saveKey() {
   const v = input ? input.value.trim() : "";
   const err = document.getElementById("key-err");
   if (!v || v.length < 20) {
-    if (err) { err.textContent = "Key muito curta (" + v.length + " chars). Cole a key completa do Groq."; err.style.display = "block"; }
+    if (err) { err.textContent = "Key inválida — cole a key completa do Groq (gsk_...)."; err.style.display = "block"; }
     return;
   }
   if (err) err.style.display = "none";
   apiKey = v;
   localStorage.setItem(KEY_STORE, v);
-  showApp();
-}
-
-function askKeyPrompt() {
-  const v = window.prompt("Cole sua API key do Groq (gsk_...):");
-  if (!v || v.trim().length < 20) { alert("Key inválida."); return; }
-  apiKey = v.trim();
-  localStorage.setItem(KEY_STORE, apiKey);
   showApp();
 }
 
@@ -246,7 +394,7 @@ async function ai(sys, usr, tok) {
     headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
-      max_tokens: tok || 600,
+      max_tokens: tok || 300,
       messages: [{ role: "system", content: sys }, { role: "user", content: usr }]
     })
   });
@@ -254,6 +402,14 @@ async function ai(sys, usr, tok) {
   if (d.error) throw new Error(d.error.message);
   return d.choices?.[0]?.message?.content || "";
 }
+
+window._mergeCloudEntries = function(cloudEntries) {
+  const existing = new Set(entries.map(e => e.id));
+  const novos = cloudEntries.filter(e => !existing.has(e.id));
+  entries = [...entries, ...novos].sort((a,b) => b.id - a.id).slice(0,500);
+  saveEntries();
+  render();
+};
 
 function loadEntries() {
   try { const r = localStorage.getItem(STORE); if (r) entries = JSON.parse(r); } catch(e) {}
@@ -316,8 +472,10 @@ async function addNote() {
     tags = (p.tags||[]).slice(0,3);
     categoria = (p.categoria||"geral").toLowerCase().replace(/\s+/g,"_").slice(0,30);
   } catch(e) {}
-  entries = [{ id: Date.now(), text, tags, categoria, date: new Date().toISOString() }, ...entries].slice(0,500);
+  const newEntry = { id: Date.now(), text, tags, categoria, date: new Date().toISOString() };
+  entries = [newEntry, ...entries].slice(0,500);
   saveEntries();
+  if (window.fbSaveEntry) window.fbSaveEntry(newEntry);
   el.value = "";
   document.getElementById("s-status").style.display = "none";
   document.getElementById("s-toolbar").style.display = "flex";
@@ -334,13 +492,13 @@ async function askMemory() {
   box.style.display = "block";
   al.innerHTML = '<span class="spin"></span>Consultando sua memória...';
   at.textContent = "";
-  const ctx = entries.slice(0,200).map(e =>
-    `[${fmt(e.date)} | ${e.categoria||"geral"}${e.tags?.length?" | "+e.tags.join(", "):""}]\n${e.text}`
-  ).join("\n\n---\n\n");
+  const ctx = entries.slice(0,50).map(e =>
+    `[${fmt(e.date)}|${e.categoria||"geral"}] ${e.text}`
+  ).join("\n");
   try {
     const ans = await ai(
       "Você é uma memória pessoal. Responda EXATAMENTE o que foi perguntado, nada mais. Se perguntarem um nome, responda só o nome. Se perguntarem uma data, responda só a data. Seja extremamente conciso. Use raciocínio natural: água conta como líquido, remédios e medicamentos são a mesma coisa. Ao perguntar sobre hoje, use apenas registros da data atual. Nunca adicione informações extras além do que foi perguntado. Responda sempre em português.",
-      `DATA E HORA ATUAL: ${new Date().toLocaleString("pt-BR")}\n\nNOTAS:\n\n${ctx}\n\n---\nPERGUNTA: ${q}`, 1000
+      `HOJE É: ${new Date().toLocaleDateString("pt-BR", {weekday:"long", day:"2-digit", month:"long", year:"numeric"})}\nHORA ATUAL: ${new Date().toLocaleTimeString("pt-BR")}\n\nIMPORTANTE: Ao responder perguntas sobre "hoje", "agora" ou "este momento", use APENAS registros com a data de hoje. Se não houver registros de hoje, diga claramente que não há registro para hoje.\n\nNOTAS:\n${ctx}\n\nPERGUNTA: ${q}`, 1000
     );
     al.textContent = "Resposta"; at.textContent = ans;
   } catch(e) {
@@ -349,7 +507,7 @@ async function askMemory() {
   btn.disabled = false; btn.textContent = "Perguntar";
 }
 
-function del(id) { entries = entries.filter(e => e.id!==id); saveEntries(); render(); }
+function del(id) { entries = entries.filter(e => e.id!==id); saveEntries(); render(); if (window.fbDeleteEntry) window.fbDeleteEntry(id); }
 function setFilter(f) { filter = f; render(); }
 
 document.querySelectorAll(".tab").forEach(t => {
@@ -366,12 +524,7 @@ noteEl.addEventListener("input", () => { document.getElementById("btn-add").disa
 noteEl.addEventListener("keydown", e => { if ((e.ctrlKey||e.metaKey) && e.key==="Enter") { e.preventDefault(); if(noteEl.value.trim()) addNote(); } });
 document.getElementById("q-input").addEventListener("keydown", e => { if(e.key==="Enter") askMemory(); });
 
-loadKey();
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(function(e){ console.log('SW error:', e); });
-}
+loadKey(); applyLang();
 </script>
 </body>
 </html>
