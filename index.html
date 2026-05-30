@@ -428,8 +428,8 @@ function checkOnboard() {
 
 function toggleLang(){ LANG = LANG==="pt"?"en":"pt"; localStorage.setItem("mem_lang",LANG); applyLang(); }
 function applyLang(){
-  document.getElementById("app-title").textContent = t("title");
-  document.getElementById("app-sub").textContent = t("sub");
+  var at=document.getElementById("app-title"); if(at) at.textContent=t("title");
+  var as=document.getElementById("app-sub"); if(as) as.textContent=t("sub");
   document.querySelectorAll(".m-tab[data-t]").forEach(function(el){
     if(el.dataset.t==="reg") el.textContent=t("tab_reg");
     if(el.dataset.t==="ask") el.textContent=t("tab_ask");
