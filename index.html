@@ -99,6 +99,10 @@ button:active{transform:scale(.97)}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+// Expose non-firebase functions globally after module loads
+window.addEventListener("DOMContentLoaded", function() {
+  if(window._appReady) window._appReady();
+});
 
 const firebaseConfig = {
   apiKey: "AIzaSyBEBATr4LW6EdpvIyNWJrnnygEv8zXaZU0",
@@ -300,6 +304,28 @@ onAuthStateChanged(auth, async (user) => {
 </div>
 
 <script>
+var LANG = localStorage.getItem("mem_lang") || (navigator.language.startsWith("pt") ? "pt" : "en");
+var T = {
+  pt: {
+    title:"Memória", sub:"Registre qualquer coisa. Pergunte quando precisar.",
+    tab_reg:"Registrar", tab_ask:"Perguntar", tab_all:"Tudo",
+    placeholder_reg:"Registre qualquer coisa — ideia, tarefa, informação, lembrete, decisão...",
+    placeholder_ask:"O que você quer saber? Ex: quais são minhas tarefas?",
+    btn_reg:"Registrar", btn_ask:"Perguntar", btn_export:"⬇ Exportar", btn_import:"⬆ Importar",
+    btn_config:"Configurar", login:"Login Google", logout:"Sair",
+    no_user:"Salve na nuvem — faça login", hint:"Ctrl/⌘ + Enter para salvar"
+  },
+  en: {
+    title:"Memory", sub:"Log anything. Ask when you need it.",
+    tab_reg:"Log", tab_ask:"Ask", tab_all:"All",
+    placeholder_reg:"Log anything — idea, task, note, reminder, decision...",
+    placeholder_ask:"What do you want to know? E.g. what tasks do I have?",
+    btn_reg:"Save", btn_ask:"Ask", btn_export:"⬇ Export", btn_import:"⬆ Import",
+    btn_config:"Settings", login:"Login with Google", logout:"Sign out",
+    no_user:"Save to cloud — sign in", hint:"Ctrl/⌘ + Enter to save"
+  }
+};
+function t(k){ return (T[LANG] && T[LANG][k]) ? T[LANG][k] : k; }
 const STORE = "memoria_v1";
 const KEY_STORE = "mem_apikey";
 let entries = [];
