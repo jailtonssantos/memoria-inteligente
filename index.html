@@ -400,6 +400,30 @@ function checkOnboard() {
   }
 }
 
+function toggleLang(){ LANG = LANG==="pt"?"en":"pt"; localStorage.setItem("mem_lang",LANG); applyLang(); }
+function applyLang(){
+  document.getElementById("app-title").textContent = t("title");
+  document.getElementById("app-sub").textContent = t("sub");
+  document.querySelectorAll(".m-tab[data-t]").forEach(function(el){
+    if(el.dataset.t==="reg") el.textContent=t("tab_reg");
+    if(el.dataset.t==="ask") el.textContent=t("tab_ask");
+    if(el.dataset.t==="all") el.textContent=t("tab_all");
+  });
+  var mnote=document.getElementById("mnote"); if(mnote) mnote.placeholder=t("placeholder_reg");
+  var qi=document.getElementById("mq-input"); if(qi) qi.placeholder=t("placeholder_ask");
+  var ba=document.getElementById("mbtn-add"); if(ba) ba.textContent=t("btn_reg");
+  var bask=document.getElementById("mbtn-ask"); if(bask) bask.textContent=t("btn_ask");
+  var bel=document.getElementById("btn-export-lbl"); if(bel) bel.textContent=t("btn_export");
+  var bil=document.getElementById("btn-import-lbl"); if(bil) bil.textContent=t("btn_import");
+  var bcl=document.getElementById("btn-config-lbl"); if(bcl) bcl.textContent=t("btn_config");
+  var fnu=document.getElementById("fb-no-user"); if(fnu) fnu.textContent=t("no_user");
+  var fsi=document.getElementById("fb-signin"); if(fsi) fsi.textContent=t("login");
+  var fso=document.getElementById("fb-signout"); if(fso) fso.textContent=t("logout");
+  var lb=document.getElementById("lang-btn"); if(lb) lb.textContent=LANG==="pt"?"🇧🇷 PT":"🇺🇸 EN";
+  var mh=document.getElementById("mhint"); if(mh) mh.textContent=t("hint");
+  render();
+}
+
 function loadKey() {
   checkOnboard();
   apiKey = localStorage.getItem(KEY_STORE) || "";
