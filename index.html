@@ -40,21 +40,30 @@ button:active{transform:scale(.97)}
 .spin{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 .slabel{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin:1.75rem 0 .75rem}
-.card{padding:13px 15px;margin-bottom:7px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);transition:border .12s}
+.card{padding:13px 15px 36px 15px;margin-bottom:7px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);transition:border .12s;position:relative;cursor:pointer}
 .card:hover{border-color:var(--border2)}
 .chead{display:flex;gap:10px}
-.ctext{font-size:14px;color:var(--text);line-height:1.6;flex:1;word-break:break-word}
-.cside{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.ctext{font-size:14px;color:var(--text);line-height:1.6;flex:1;word-break:break-word;white-space:pre-wrap}
+.cside{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
 .cdate{font-size:11px;color:var(--text3);white-space:nowrap}
-.del{font-size:17px;color:var(--text3);background:none;border:none;cursor:pointer;line-height:1;padding:0 1px;opacity:0;transition:opacity .1s}
-.card:hover .del{opacity:.6}
+.del{font-size:14px;color:#e05;background:none;border:none;cursor:pointer;padding:3px 5px;opacity:0;transition:opacity .2s;position:absolute;bottom:8px;right:6px;z-index:3;line-height:1}
 .del:hover{opacity:1!important;color:#f07}
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .tag{font-size:11px;padding:2px 9px;background:var(--tag-bg);color:var(--tag);border-radius:999px}
 .cat{font-size:11px;padding:2px 8px;background:var(--bg3);color:var(--text3);border-radius:999px}
+.edit-btn{font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;padding:3px 5px;opacity:0;transition:opacity .2s;position:absolute;bottom:8px;right:34px;z-index:3;line-height:1}
+.card.active .edit-btn{opacity:1}
+.card.active .del{opacity:1}
+.edit-btn:hover{opacity:1!important}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:20px;width:100%;max-width:520px}
+.modal-title{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text)}
+.modal-box textarea{width:100%;min-height:120px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-size:14px;font-family:inherit;resize:vertical;box-sizing:border-box}
+.modal-box input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;box-sizing:border-box;margin-top:8px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
 .abox{margin-top:1.25rem;padding:18px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl)}
 .alabel{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:7px}
-.atext{font-size:15px;line-height:1.75;color:var(--text);white-space:pre-wrap}
+.atext{font-size:15px;line-height:1.75;color:var(--text)}
 .fbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem}
 .chip{font-size:12px;padding:4px 12px;border:1px solid var(--border);border-radius:999px;cursor:pointer;background:transparent;color:var(--text2);font-family:inherit;transition:all .1s}
 .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -97,7 +106,7 @@ button:active{transform:scale(.97)}
 </style>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 // Expose non-firebase functions globally after module loads
 window.addEventListener("DOMContentLoaded", function() {
@@ -106,7 +115,7 @@ window.addEventListener("DOMContentLoaded", function() {
 
 const firebaseConfig = {
   apiKey: "AIzaSyBEBATr4LW6EdpvIyNWJrnnygEv8zXaZU0",
-  authDomain: "memoria-inteligente-fd5b0.firebaseapp.com",
+  authDomain: "memoria-inteligente-fd5b0.web.app",
   projectId: "memoria-inteligente-fd5b0",
   storageBucket: "memoria-inteligente-fd5b0.firebasestorage.app",
   messagingSenderId: "1021842175263",
@@ -118,11 +127,34 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 let currentUser = null;
 
+const isCapacitor = window.Capacitor !== undefined;
+
+// Plugin Google Auth via Capacitor.Plugins
+function getGoogleAuthPlugin() {
+  return window.Capacitor?.Plugins?.GoogleAuth || null;
+}
+
 window.fbSignIn = async function() {
-  const provider = new GoogleAuthProvider();
   try {
-    await signInWithPopup(auth, provider);
-  } catch(e) { console.log(e); }
+    const GoogleAuth = getGoogleAuthPlugin();
+    if (isCapacitor && GoogleAuth) {
+      // Login nativo no Android via plugin Capacitor
+      console.log("Usando plugin GoogleAuth nativo");
+      await GoogleAuth.initialize({
+        clientId: "1021842175263-onu4u0bagnl0cq2qvlkm8ihvon1neeb2.apps.googleusercontent.com",
+        scopes: ["profile", "email"],
+        grantOfflineAccess: true
+      });
+      const googleUser = await GoogleAuth.signIn();
+      console.log("GoogleAuth signIn ok:", googleUser);
+      const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+      await signInWithCredential(auth, credential);
+    } else {
+      console.log("Usando popup Firebase");
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    }
+  } catch(e) { console.error("Login error:", e.message, e); }
 };
 
 window.fbSignOut = async function() {
@@ -148,6 +180,7 @@ window.fbLoadEntries = async function() {
 
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
+  window._currentUser = user;
   if (user) {
     document.getElementById("fb-user").textContent = user.displayName || user.email;
     document.getElementById("fb-avatar").src = user.photoURL || "";
@@ -155,10 +188,22 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById("fb-signin").style.display = "none";
     document.getElementById("fb-signout").style.display = "inline-block";
     document.getElementById("fb-user").style.display = "inline";
-    // Load from cloud
+    // Carrega da nuvem
     const cloudEntries = await window.fbLoadEntries();
     if (cloudEntries && cloudEntries.length > 0) {
       window._mergeCloudEntries(cloudEntries);
+    }
+    // Sincroniza notas locais que ainda não estão na nuvem
+    const cloudIds = new Set((cloudEntries||[]).map(e => String(e.id)));
+    const localOnly = entries.filter(e => !cloudIds.has(String(e.id)));
+    if (localOnly.length > 0) {
+      console.log(`Sincronizando ${localOnly.length} notas locais pro Firestore...`);
+      for (const entry of localOnly) {
+        try {
+          await setDoc(doc(db, "users", user.uid, "entries", String(entry.id)), entry);
+        } catch(e) { console.warn("Erro ao sincronizar entrada:", e); }
+      }
+      console.log("Sincronização concluída!");
     }
   } else {
     document.getElementById("fb-avatar").style.display = "none";
@@ -194,22 +239,23 @@ onAuthStateChanged(auth, async (user) => {
     <div class="onboard-step" id="ob2">
       <div style="font-size:40px;margin-bottom:1rem">⚡</div>
       <p class="onboard-title" id="ob2-title">Como funciona</p>
-      <p class="onboard-sub" id="ob2-sub">O app usa inteligência artificial gratuita para entender suas perguntas e organizar seus registros.</p>
-      <div class="onboard-card" id="ob2-c1">🔑 Você vai precisar de uma <strong>API key gratuita do Groq</strong> — é rápido e sem cartão de crédito.</div>
-      <div class="onboard-card" id="ob2-c2">📏 <strong>Registros curtos funcionam melhor.</strong> Prefira frases diretas como <code>tomei medicação 07h</code> em vez de textos longos.</div>
-      <div class="onboard-card" id="ob2-c3">⏱ Há um <strong>limite de uso por minuto</strong> — generoso para o dia a dia, mas evite muitas consultas seguidas.</div>
+      <p class="onboard-sub" id="ob2-sub">O app usa inteligência artificial para entender suas perguntas e encontrar exatamente o que você precisa.</p>
+      <div class="onboard-card" id="ob2-c1">🔍 <strong>Busca inteligente</strong> — a IA encontra registros por significado, não só por palavras exatas.</div>
+      <div class="onboard-card" id="ob2-c2">📏 <strong>Registros curtos funcionam melhor.</strong> Prefira frases diretas como <code>tomei medicação 07h</code>.</div>
+      <div class="onboard-card" id="ob2-c3">☁️ <strong>Sincronização automática</strong> — seus registros ficam salvos na nuvem e disponíveis em qualquer dispositivo.</div>
     </div>
-
     <div class="onboard-step" id="ob3">
-      <div style="font-size:40px;margin-bottom:1rem">🔑</div>
-      <p class="onboard-title" id="ob3-title">Crie sua API key gratuita</p>
-      <p class="onboard-sub" id="ob3-sub">Você precisa fazer isso uma única vez. Leva menos de 2 minutos.</p>
-      <div class="onboard-card">1. Acesse <strong><a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a></strong></div>
-      <div class="onboard-card">2. Crie uma conta gratuita (pode usar Google)</div>
-      <div class="onboard-card">3. Clique em <strong>Create API Key</strong> e copie a key</div>
-      <div class="onboard-card">4. Cole a key na próxima tela e pronto ✅</div>
+      <div style="font-size:40px;margin-bottom:1rem">🔐</div>
+      <p class="onboard-title" id="ob3-title">Entre com o Google</p>
+      <p class="onboard-sub" id="ob3-sub">Faça login para salvar seus registros na nuvem e acessar de qualquer dispositivo.</p>
+      <div style="display:flex;justify-content:center;margin:1.5rem 0">
+        <button onclick="obDoLogin()" style="display:flex;align-items:center;gap:10px;padding:14px 24px;font-size:15px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;font-family:inherit;color:var(--text)">
+          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.8 2.5 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.8 6C12.4 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 7.1-10 7.1-17z"/><path fill="#FBBC05" d="M10.4 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.8-6A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.6 10.6l7.8-5.9z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.2 0-11.5-4.2-13.4-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>
+          Entrar com Google
+        </button>
+      </div>
+      <p id="ob3-login-status" style="text-align:center;font-size:13px;color:var(--text3);margin-top:8px"></p>
     </div>
-
     <div class="onboard-nav">
       <div class="onboard-dots">
         <div class="onboard-dot on" id="od0"></div>
@@ -241,22 +287,13 @@ onAuthStateChanged(auth, async (user) => {
     <button id="lang-btn" class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="toggleLang()">🇧🇷 PT</button>
     <button class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="exportData()"><span id="btn-export-lbl">⬇ Exportar</span></button>
     <label class="btn-ghost" style="padding:5px 12px;font-size:12px;cursor:pointer"><span id="btn-import-lbl">⬆ Importar</span><input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
-    <button class="btn-ghost" style="padding:5px 12px;font-size:12px" onclick="toggleCfg()"><span id="btn-config-lbl">Configurar</span></button>
   </div>
 
-  <div id="cfg-box" class="cfg-box">
-    <p>Para usar a IA (auto-classificação e consultas), você precisa de uma <strong>API key do Groq</strong> — gratuita.<br>
-    Crie a sua em <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> → <em>Create API Key</em>. A key fica salva apenas no seu navegador.</p>
-    <div class="cfg-row">
-      <input type="password" id="key-input" placeholder="gsk_...">
-      <button class="btn-p" onclick="saveKey()">Salvar key</button>
-    </div>
-    <p id="key-err" style="font-size:12px;color:#f07;margin-top:8px;display:none"></p>
-  </div>
+  <!-- cfg-box removido: backend cuida da IA -->
 
   <!-- App -->
   <div id="main-app" style="display:none">
-    <div class="hrow"><span style="font-size:26px;line-height:1">🧠</span><h1>Memória</h1><span class="count" id="badge">0 registros</span></div>
+    <div class="hrow"><img src="data:image/png;base64,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" style="width:32px;height:32px;object-fit:cover;border-radius:6px;flex-shrink:0"><h1>Memória Inteligente</h1><span class="count" id="badge">0 registros</span></div>
     <p class="sub">Registre qualquer coisa. Pergunte quando precisar.</p>
 
     <div class="tabs">
@@ -268,9 +305,8 @@ onAuthStateChanged(auth, async (user) => {
     <!-- Registrar -->
     <div class="panel on" id="p-reg">
       <textarea id="note" placeholder="Registre qualquer coisa — ideia, tarefa, informação, lembrete, decisão, observação..."></textarea>
-      <div id="s-status" class="status" style="display:none"><span class="spin"></span>Organizando e salvando...</div>
-      <div class="row" id="s-toolbar">
-        <span class="hint">Ctrl/⌘ + Enter para salvar</span>
+      <div class="row" id="s-toolbar" style="margin-top:8px">
+        <input type="text" id="tags-input" placeholder="Tags opcionais: trabalho, ideia, saude..." style="flex:1;background:var(--s2);border:1px solid var(--brd);border-radius:8px;padding:6px 10px;color:var(--t1);font-size:13px">
         <button class="btn-p" id="btn-add" disabled onclick="addNote()">Registrar</button>
       </div>
       <p class="slabel" id="rl" style="display:none">Recentes</p>
@@ -328,9 +364,22 @@ var T = {
 function t(k){ return (T[LANG] && T[LANG][k]) ? T[LANG][k] : k; }
 const STORE = "memoria_v1";
 const KEY_STORE = "mem_apikey";
+const DELETED_STORE = "memoria_deleted_v1";
+
+function getDeletedIds() {
+  try { return JSON.parse(localStorage.getItem(DELETED_STORE)) || []; } catch(e) { return []; }
+}
+function addDeletedId(id) {
+  try {
+    const list = getDeletedIds();
+    list.push(String(id));
+    // mantém só os últimos 500 para não crescer indefinidamente
+    localStorage.setItem(DELETED_STORE, JSON.stringify(list.slice(-500)));
+  } catch(e) {}
+}
 let entries = [];
 let filter = null;
-let apiKey = "";
+// apiKey removida — backend cuida da autenticação
 
 function exportData() {
   if (entries.length === 0) { alert("Nenhum registro para exportar."); return; }
@@ -379,11 +428,11 @@ function obSetLang(lang) {
     document.getElementById("ob1-c3").innerHTML = "📂 <strong>Everything organized</strong> automatically by category and date.";
     document.getElementById("ob2-title").textContent = "How it works";
     document.getElementById("ob2-sub").textContent = "The app uses free AI to understand your questions and organize your entries.";
-    document.getElementById("ob2-c1").innerHTML = "🔑 You'll need a <strong>free Groq API key</strong> — quick and no credit card needed.";
-    document.getElementById("ob2-c2").innerHTML = "📏 <strong>Short entries work best.</strong> Prefer direct phrases like <code>took medication 7am</code> instead of long texts.";
-    document.getElementById("ob2-c3").innerHTML = "⏱ There's a <strong>per-minute usage limit</strong> — generous for daily use, just avoid many queries in a row.";
-    document.getElementById("ob3-title").textContent = "Create your free API key";
-    document.getElementById("ob3-sub").textContent = "You only need to do this once. Takes less than 2 minutes.";
+    document.getElementById("ob2-c1").innerHTML = "🔍 <strong>Smart search</strong> — AI finds entries by meaning, not just exact words.";
+    document.getElementById("ob2-c2").innerHTML = "📏 <strong>Short entries work best.</strong> Prefer direct phrases like <code>took medication 7am</code>.";
+    document.getElementById("ob2-c3").innerHTML = "☁️ <strong>Auto sync</strong> — your entries are saved to the cloud and available on any device.";
+    document.getElementById("ob3-title").textContent = "Sign in with Google";
+    document.getElementById("ob3-sub").textContent = "Sign in to save your entries to the cloud and access them from any device.";
     document.getElementById("ob-next").textContent = "Next →";
   } else {
     document.getElementById("ob-next").textContent = "Próximo →";
@@ -400,18 +449,29 @@ function obSetLang(lang) {
   if(ob1) ob1.classList.add("on");
   if(od1) od1.classList.add("on");
 }
-function obNext() {
-  if (obStep === 0) {
-    // Should use obSetLang, skip direct next
-    return;
+async function obDoLogin() {
+  const btn = document.querySelector("#ob3 button");
+  const status = document.getElementById("ob3-login-status");
+  if (btn) btn.disabled = true;
+  if (status) status.textContent = LANG === "en" ? "Signing in..." : "Entrando...";
+  try {
+    await window.fbSignIn();
+    if (status) status.textContent = LANG === "en" ? "✅ Signed in!" : "✅ Login realizado!";
+    setTimeout(() => finishOnboard(), 800);
+  } catch(e) {
+    if (status) status.textContent = LANG === "en" ? "Error. Try again." : "Erro. Tente novamente.";
+    if (btn) btn.disabled = false;
   }
+}
+function obNext() {
+  if (obStep === 0) { return; }
   if (obStep < 3) {
     document.getElementById("ob"+obStep).classList.remove("on");
     document.getElementById("od"+obStep).classList.remove("on");
     obStep++;
     document.getElementById("ob"+obStep).classList.add("on");
     document.getElementById("od"+obStep).classList.add("on");
-    if (obStep === 3) document.getElementById("ob-next").textContent = LANG==="en" ? "Start →" : "Começar →";
+    if (obStep === 3) { document.getElementById("ob-next").style.display = "none"; }
   } else {
     finishOnboard();
   }
@@ -452,58 +512,25 @@ function applyLang(){
 
 function loadKey() {
   checkOnboard();
-  apiKey = localStorage.getItem(KEY_STORE) || "";
   document.getElementById("cfg-bar").style.display = "flex";
-  if (apiKey && apiKey.length >= 20) {
-    showApp();
-  }
-}
-
-function saveKey() {
-  const input = document.getElementById("key-input");
-  const v = input ? input.value.trim() : "";
-  const err = document.getElementById("key-err");
-  if (!v || v.length < 20) {
-    if (err) { err.textContent = "Key inválida — cole a key completa do Groq (gsk_...)."; err.style.display = "block"; }
-    return;
-  }
-  if (err) err.style.display = "none";
-  apiKey = v;
-  localStorage.setItem(KEY_STORE, v);
   showApp();
 }
 
 function showApp() {
-  document.getElementById("cfg-box").style.display = "none";
   document.getElementById("main-app").style.display = "block";
   document.getElementById("key-dot").style.background = "#3c3";
-  document.getElementById("key-label").textContent = "API key configurada";
+  document.getElementById("key-label").textContent = "Conectado";
   loadEntries();
+  // Sincroniza registros existentes no Pinecone em background
+  setTimeout(() => syncEmbeddings().catch(e => console.warn("syncEmbeddings:", e)), 2000);
 }
 
-function toggleCfg() {
-  const box = document.getElementById("cfg-box");
-  box.style.display = box.style.display === "none" ? "block" : "none";
-}
 
-async function ai(sys, usr, tok) {
-  const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      max_tokens: tok || 300,
-      messages: [{ role: "system", content: sys }, { role: "user", content: usr }]
-    })
-  });
-  const d = await r.json();
-  if (d.error) throw new Error(d.error.message);
-  return d.choices?.[0]?.message?.content || "";
-}
 
 window._mergeCloudEntries = function(cloudEntries) {
   const existing = new Set(entries.map(e => e.id));
-  const novos = cloudEntries.filter(e => !existing.has(e.id));
+  const deletedIds = new Set(getDeletedIds());
+  const novos = cloudEntries.filter(e => !existing.has(e.id) && !deletedIds.has(String(e.id)));
   entries = [...entries, ...novos].sort((a,b) => b.id - a.id).slice(0,500);
   saveEntries();
   render();
@@ -520,13 +547,25 @@ function saveEntries() {
 
 function fmt(iso) { const d = new Date(iso); return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
 
+function formatText(txt) {
+  // Escapa HTML primeiro
+  let s = txt.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  // Aplica formatações
+  s = s.replace(/^> (.+)$/gm,'<span style="opacity:.45">$1</span>');
+  s = s.replace(/^- (.+)$/gm,'• $1');
+  s = s.replace(/\*(.*?)\*/g,"<strong>$1</strong>");
+  s = s.replace(/_(.*?)_/g,"<em>$1</em>");
+  s = s.replace(/-(.*?)-/g,"<s>$1</s>");
+  s = s.replace(/\n/g,"<br>");
+  return s;
+}
 function cardHTML(e, trunc) {
   const txt = trunc && e.text.length > 140 ? e.text.slice(0, 140) + "…" : e.text;
-  const safe = txt.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  const safe = formatText(txt);
   const tagsH = (e.tags||[]).map(t => `<span class="tag">${t}</span>`).join("");
   const catH = e.categoria ? `<span class="cat">${e.categoria.replace(/_/g," ")}</span>` : "";
   const footer = (tagsH || catH) ? `<div class="tags">${tagsH}${catH}</div>` : "";
-  return `<div class="card"><div class="chead"><p class="ctext">${safe}</p><div class="cside"><span class="cdate">${fmt(e.date)}</span><button class="del" onclick="del(${e.id})" title="Remover">&times;</button></div></div>${footer}</div>`;
+  return `<div class="card" onclick="toggleCard(this)"><span class="cdate" style="position:absolute;top:10px;right:10px;font-size:11px;color:var(--text3)">${fmt(e.date)}</span><p class="ctext" style="padding-right:80px;margin:0 0 8px 0;white-space:pre-wrap">${safe}</p>${footer}<button class="edit-btn" onclick="event.stopPropagation();openEdit(${e.id})" title="Editar">✏️</button><button class="del" onclick="event.stopPropagation();del(${e.id})" title="Remover">&times;</button></div>`;
 }
 
 function render() {
@@ -541,44 +580,98 @@ function render() {
   const ac = document.getElementById("all-content");
   ac.style.display = n===0?"none":"block";
   if (n > 0) {
-    const cats = [...new Set(entries.map(e => e.categoria||"geral"))].sort();
+    const allTags = [...new Set(entries.flatMap(e => e.tags||[]))].sort();
     document.getElementById("fbar").innerHTML =
       `<button class="chip ${!filter?"on":""}" onclick="setFilter(null)">Tudo</button>` +
-      cats.map(c => `<button class="chip ${filter===c?"on":""}" onclick="setFilter('${c}')">${c.replace(/_/g," ")}</button>`).join("");
-    const filtered = filter ? entries.filter(e => (e.categoria||"geral")===filter) : entries;
-    const bycat = {};
-    filtered.forEach(e => { const c = e.categoria||"geral"; if(!bycat[c]) bycat[c]=[]; bycat[c].push(e); });
-    document.getElementById("all-list").innerHTML = Object.entries(bycat).map(([c,items]) =>
-      `<div class="catgroup"><div class="cathead"><span class="catname">${c.replace(/_/g," ")}</span><span class="catn">(${items.length})</span></div>${items.map(e=>cardHTML(e,false)).join("")}</div>`
-    ).join("");
+      allTags.map(tag => `<button class="chip ${filter===tag?"on":""}" onclick="setFilter('${tag}')">${tag}</button>`).join("");
+    renderAll();
   }
 }
+
+// ── BACKEND CONFIG ───────────────────────────────────────────────────────────
+const BACKEND_URL = "https://memoria-inteligente-backend-production.up.railway.app";
+const TOP_K = 8;
+
+// Pega o token Firebase do usuário logado
+async function getToken() {
+  if (!window._currentUser) return null;
+  return await window._currentUser.getIdToken();
+}
+
+// Chamada autenticada ao backend
+async function api(path, body) {
+  const token = await getToken();
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = "Bearer " + token;
+  const r = await fetch(BACKEND_URL + path, { method: "POST", headers, body: JSON.stringify(body) });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return d;
+}
+
+// Gera embedding via backend
+async function embed(text) {
+  const d = await api("/embed", { text });
+  return d.embedding;
+}
+
+// Classifica nota via backend
+
+
+// Salva vetor no Pinecone via backend
+async function pineconeUpsert(id, vector, metadata) {
+  await api("/vectors/upsert", { id, vector, metadata }).catch(e => console.warn("upsert:", e.message));
+}
+
+// Deleta vetor do Pinecone via backend
+async function pineconeDelete(id) {
+  await api("/vectors/delete", { ids: [String(id)] }).catch(e => console.warn("delete:", e.message));
+}
+
+// Busca vetores similares e retorna registros locais correspondentes
+async function pineconeSearch(queryVector, topK) {
+  const d = await api("/vectors/query", { vector: queryVector, topK });
+  return (d.matches || []).map(m => entries.find(e => e.id === Number(m.id))).filter(Boolean);
+}
+
+// Sincroniza registros que ainda não têm embedding
+async function syncEmbeddings() {
+  if (!window._currentUser) return; // só sincroniza se logado
+  const pending = entries.filter(e => !e._embedded);
+  if (pending.length === 0) return;
+  console.log(`Sincronizando ${pending.length} registros no Pinecone...`);
+  for (const e of pending) {
+    try {
+      const vec = await embed(e.text);
+      await pineconeUpsert(e.id, vec, { date: e.date });
+      e._embedded = true;
+    } catch(err) { console.warn("Erro ao indexar registro", e.id, err.message); }
+  }
+  saveEntries();
+}
+// ── FIM BACKEND ───────────────────────────────────────────────────────────────
 
 async function addNote() {
   const el = document.getElementById("note"), text = el.value.trim();
   if (!text) return;
+  const tagsRaw = document.getElementById("tags-input")?.value?.trim() || "";
+  const tags = tagsRaw ? tagsRaw.split(/[,\s]+/).map(t => t.replace(/^#/,"").toLowerCase()).filter(Boolean).slice(0,5) : [];
   document.getElementById("btn-add").disabled = true;
-  document.getElementById("s-status").style.display = "flex";
-  document.getElementById("s-toolbar").style.display = "none";
-  let tags = [], categoria = "geral";
-  try {
-    const raw = await ai(
-      "Analise a nota. Retorne SOMENTE JSON válido sem markdown: {\"tags\":[\"tag1\",\"tag2\"],\"categoria\":\"palavra\"}. Máximo 3 tags curtas em português minúsculas sem acentos. Categoria: uma palavra (tarefas, ideias, trabalho, financas, saude, aprendizado, projetos, pessoal, etc).",
-      text, 120
-    );
-    const p = JSON.parse(raw.replace(/```json|```/g,"").trim());
-    tags = (p.tags||[]).slice(0,3);
-    categoria = (p.categoria||"geral").toLowerCase().replace(/\s+/g,"_").slice(0,30);
-  } catch(e) {}
-  const newEntry = { id: Date.now(), text, tags, categoria, date: new Date().toISOString() };
+  const newEntry = { id: Date.now(), text, tags, date: new Date().toISOString() };
   entries = [newEntry, ...entries].slice(0,500);
   saveEntries();
   if (window.fbSaveEntry) window.fbSaveEntry(newEntry);
   el.value = "";
-  document.getElementById("s-status").style.display = "none";
-  document.getElementById("s-toolbar").style.display = "flex";
+  if (document.getElementById("tags-input")) document.getElementById("tags-input").value = "";
   document.getElementById("btn-add").disabled = true;
   render();
+  // Gera e salva embedding em background (sem chamar IA de classificação)
+  try {
+    const vec = await embed(text);
+    await pineconeUpsert(newEntry.id, vec, { date: newEntry.date });
+    newEntry._embedded = true;
+    saveEntries();
+  } catch(err) { console.warn("RAG: erro ao indexar nota nova:", err.message); }
 }
 
 async function askMemory() {
@@ -588,24 +681,127 @@ async function askMemory() {
   btn.disabled = true; btn.textContent = "...";
   const box = document.getElementById("abox"), al = document.getElementById("alabel"), at = document.getElementById("atext");
   box.style.display = "block";
-  al.innerHTML = '<span class="spin"></span>Consultando sua memória...';
-  at.textContent = "";
-  const ctx = entries.slice(0,50).map(e =>
-    `[${fmt(e.date)}|${e.categoria||"geral"}] ${e.text}`
-  ).join("\n");
+  at.innerHTML = "";
+
+  // Se for uma tag exata, mostra registros diretamente sem IA
+  const allTags = [...new Set(entries.flatMap(e => e.tags||[]))];
+  const matchedTag = allTags.find(t => t.toLowerCase() === q.toLowerCase());
+  if (matchedTag) {
+    const tagged = entries.filter(e => (e.tags||[]).includes(matchedTag));
+    al.textContent = `${tagged.length} registro(s) com tag "${matchedTag}"`;
+    at.innerHTML = tagged.map(e =>
+      `<div style="border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${fmt(e.date)}</div>
+        <div style="font-size:14px;color:var(--text)">${formatText(e.text)}</div>
+      </div>`
+    ).join("");
+    btn.disabled = false; btn.textContent = "Perguntar";
+    return;
+  }
+
+  al.innerHTML = '<span class="spin"></span>Buscando registros relevantes...';
+
   try {
-    const ans = await ai(
-      "Você é uma memória pessoal. Responda EXATAMENTE o que foi perguntado, nada mais. Se perguntarem um nome, responda só o nome. Se perguntarem uma data, responda só a data. Seja extremamente conciso. Use raciocínio natural: água conta como líquido, remédios e medicamentos são a mesma coisa. Ao perguntar sobre hoje, use apenas registros da data atual. Nunca adicione informações extras além do que foi perguntado. Responda sempre em português.",
-      `HOJE É: ${new Date().toLocaleDateString("pt-BR", {weekday:"long", day:"2-digit", month:"long", year:"numeric"})}\nHORA ATUAL: ${new Date().toLocaleTimeString("pt-BR")}\n\nIMPORTANTE: Ao responder perguntas sobre "hoje", "agora" ou "este momento", use APENAS registros com a data de hoje. Se não houver registros de hoje, diga claramente que não há registro para hoje.\n\nNOTAS:\n${ctx}\n\nPERGUNTA: ${q}`, 1000
-    );
-    al.textContent = "Resposta"; at.textContent = ans;
+    let ctx = "";
+    // Tenta RAG primeiro
+    try {
+      al.innerHTML = '<span class="spin"></span>Buscando registros relevantes...';
+      const qVec = await embed(q);
+      const relevant = await pineconeSearch(qVec, TOP_K);
+      if (relevant.length > 0) {
+        ctx = relevant.map(e => `[${fmt(e.date)}${e.tags?.length ? "|"+e.tags.join(",") : ""}] ${e.text}`).join("\n");
+        console.log(`RAG: usando ${relevant.length} registros relevantes de ${entries.length} total`);
+      } else {
+        // Fallback: usa os 15 mais recentes se RAG não retornar nada
+        ctx = entries.slice(0,15).map(e => `[${fmt(e.date)}${e.tags?.length ? "|"+e.tags.join(",") : ""}] ${e.text}`).join("\n");
+        console.log("RAG: nenhum resultado, usando fallback com 15 recentes");
+      }
+    } catch(ragErr) {
+      console.warn("RAG falhou, usando fallback:", ragErr.message);
+      // Fallback se Pinecone falhar
+      ctx = entries.slice(0,20).map(e => `[${fmt(e.date)}${e.tags?.length ? "|"+e.tags.join(",") : ""}] ${e.text}`).join("\n");
+    }
+
+    al.innerHTML = '<span class="spin"></span>Consultando sua memória...';
+    const d = await api("/chat", {
+      question: q,
+      context: ctx,
+      today: new Date().toLocaleDateString("pt-BR", {weekday:"long", day:"2-digit", month:"long", year:"numeric"}),
+      time:  new Date().toLocaleTimeString("pt-BR"),
+    });
+    al.textContent = "Resposta"; at.innerHTML = formatText(d.answer);
   } catch(e) {
     al.textContent = "Erro"; at.textContent = "Detalhe: " + e.message;
   }
   btn.disabled = false; btn.textContent = "Perguntar";
 }
 
-function del(id) { entries = entries.filter(e => e.id!==id); saveEntries(); render(); if (window.fbDeleteEntry) window.fbDeleteEntry(id); }
+function toggleCard(card) {
+  const isActive = card.classList.contains("active");
+  document.querySelectorAll(".card.active").forEach(c => c.classList.remove("active"));
+  if (!isActive) card.classList.add("active");
+}
+
+let _editId = null;
+
+function openEdit(id) {
+  const entry = entries.find(e => e.id === id);
+  if (!entry) return;
+  _editId = id;
+  document.getElementById("edit-text").value = entry.text;
+  document.getElementById("edit-tags").value = (entry.tags||[]).join(", ");
+  document.getElementById("edit-modal").style.display = "flex";
+}
+
+function closeEdit() {
+  document.getElementById("edit-modal").style.display = "none";
+  _editId = null;
+}
+
+async function saveEdit() {
+  if (!_editId) return;
+  const entry = entries.find(e => e.id === _editId);
+  if (!entry) return;
+  const newText = document.getElementById("edit-text").value.trim();
+  const tagsRaw = document.getElementById("edit-tags").value.trim();
+  const newTags = tagsRaw ? tagsRaw.split(/[,\s]+/).map(t => t.replace(/^#/,"").toLowerCase()).filter(Boolean).slice(0,5) : [];
+  if (!newText) return;
+  entry.text = newText;
+  entry.tags = newTags;
+  entry._embedded = false;
+  saveEntries();
+  if (window.fbSaveEntry) window.fbSaveEntry(entry);
+  closeEdit();
+  render();
+  try {
+    const vec = await embed(newText);
+    await pineconeUpsert(entry.id, vec, { date: entry.date });
+    entry._embedded = true;
+    saveEntries();
+  } catch(err) { console.warn("Erro ao reindexar:", err.message); }
+}
+
+function del(id) {
+  entries = entries.filter(e => e.id!==id);
+  addDeletedId(id);
+  saveEntries();
+  render();
+  if (window.fbDeleteEntry) window.fbDeleteEntry(id).catch(e => console.warn("fbDeleteEntry falhou:", e.message));
+  pineconeDelete(id);
+}
+function renderAll() {
+  const search = (document.getElementById("all-search")?.value || "").toLowerCase().trim();
+  let filtered = filter ? entries.filter(e => (e.tags||[]).includes(filter)) : entries;
+  if (search) {
+    filtered = filtered.filter(e =>
+      e.text.toLowerCase().includes(search) ||
+      (e.tags||[]).some(t => t.toLowerCase().includes(search))
+    );
+  }
+  document.getElementById("all-list").innerHTML = filtered.length
+    ? filtered.map(e => cardHTML(e, false)).join("")
+    : `<p class="empty">Nenhum resultado para "${search}"</p>`;
+}
 function setFilter(f) { filter = f; render(); }
 
 document.querySelectorAll(".tab").forEach(t => {
@@ -624,5 +820,17 @@ document.getElementById("q-input").addEventListener("keydown", e => { if(e.key==
 
 loadKey(); applyLang();
 </script>
+
+<div id="edit-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeEdit()">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Editar registro</div>
+    <textarea id="edit-text" placeholder="Texto do registro..."></textarea>
+    <input type="text" id="edit-tags" placeholder="Tags: trabalho, ideia, saude...">
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeEdit()">Cancelar</button>
+      <button class="btn-p" onclick="saveEdit()">Salvar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
